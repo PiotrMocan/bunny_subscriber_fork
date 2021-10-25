@@ -15,7 +15,7 @@ module BunnySubscriber
         block: false
       ) do |delivery_info, properties, payload|
         if @batch.size < 100 && queue.message_count > 200
-          @batch << [payload]
+          @batch << payload
         elsif @batch.size > 0 && queue.message_count < 200
           consumer.event_process_around_action(
             @batch
