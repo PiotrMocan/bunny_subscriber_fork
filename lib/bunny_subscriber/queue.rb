@@ -4,6 +4,8 @@ module BunnySubscriber
 
     def initialize(channel)
       @channel = channel
+      @channel.prefetch(101)
+      @batch   = []
     end
 
     def subscribe(consumer)
@@ -12,9 +14,24 @@ module BunnySubscriber
         manual_ack: true,
         block: false
       ) do |delivery_info, properties, payload|
-        consumer.event_process_around_action(
-          delivery_info, properties, payload
-        )
+        if @batch.size < 100 && queue.message_count > 200
+          @batch << [payload]
+        elsif @batch.size > 0 && queue.message_count < 200
+          consumer.event_process_around_action(
+            @batch
+          )
+          @batch = []
+        elsif @batch.size >= 100
+          consumer.event_process_around_action(
+            @batch
+          )
+          @batch = []
+        else
+          consumer.event_process_around_action(
+            [payload]
+          )
+        end
+        channel.acknowledge(delivery_info.delivery_tag, false)
       end
     end
 
@@ -25,6 +42,14 @@ module BunnySubscriber
       sleep(1)
       unsubscribe
     end
+
+    # def message(delivery_info, properties, payload)
+    #   {
+    #     delivery_info: delivery_info,
+    #     properties: properties,
+    #     payload: payload
+    #   }
+    # end
 
     private
 

@@ -41,17 +41,17 @@ module BunnySubscriber
       queue.unsubscribe
     end
 
-    def event_process_around_action(delivery_info, properties, payload)
-      @logger.info "#{self.class} #{properties.message_id} start"
+    def event_process_around_action(payload)
+      @logger.info "#{self.class}  start"
       time = Time.now
 
       process_event(payload)
 
-      @logger.info "#{self.class} #{properties.message_id} "\
-        "done: #{Time.now - time} s"
-      channel.acknowledge(delivery_info.delivery_tag, false)
+      @logger.info "#{self.class}"\
+        " done: #{Time.now - time} s"
+ 
     rescue StandardError => _e
-      channel.reject(delivery_info.delivery_tag) if use_dead_letter_exchange?
+      puts "REJECTED #{_e}"
     end
 
     def use_dead_letter_exchange?
